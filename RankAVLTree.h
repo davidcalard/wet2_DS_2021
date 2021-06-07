@@ -8,6 +8,7 @@
 #include <iostream>
 #include <ostream>
 #include <algorithm>
+#include "OrderedList.h"
 
 using std::max;
 using std::endl;
@@ -33,14 +34,24 @@ public:
     RankAVLNode *right;
 
     RankAVLNode(Key k, Data d); //constructor
+    RankAVLNode(const RankAVLNode<Key,Data>&); //copy constructor
     ~RankAVLNode(); //destructor
 
     bool isLeaf();
-    void fillTree(int* num);
+    void fillTree(OrderedList<RankAVLNode<Key,Data>>& list, int* num);
     void deleteForComplete(int* num_toDel);
     int getNumOfNodes(RankAVLNode<Key,Data>* node){
         if(node== nullptr)return 0;
         return node->numOfNodes;
+    }
+    bool operator<(const RankAVLNode<Key,Data>& node){
+        return (this->data < node.data);
+    }
+    bool operator>(const RankAVLNode<Key,Data>& node){
+        return (this->data > node.data);
+    }
+    bool operator==(const RankAVLNode<Key,Data>& node){
+        return (this->data == node.data);
     }
 };
 
@@ -79,11 +90,17 @@ public:
     void printTree();
 
     //find a node with index - rank
-    RankAVLNode<Key,Data> *Select(int rank); //TODO
+    RankAVLNode<Key,Data> *Select(int rank);
 
+    //help to make almost complete tree
     RankAVLNode<Key,Data>* completeTree(int hight);
     int nodes2del(int nodes_num);
     void getCompleteTree(int nodes_num);
+
+    //combine 2 rank trees
+    RankAVLTree(RankAVLNode<Key,Data>* root1, RankAVLNode<Key,Data>* root2);
+    void inOrder(RankAVLNode<Key,Data>* root,OrderedList<RankAVLNode<Key,Data>>& list,
+            void (*func)(OrderedList<RankAVLNode<Key,Data>>&,RankAVLNode<Key,Data>& node));
 };
 
 
@@ -109,14 +126,16 @@ bool RankAVLNode<Key, Data>::isLeaf(){
     return (this->right== nullptr && this->left== nullptr);
 }
 
+
 template<class Key, class Data>
-void RankAVLNode<Key, Data>::fillTree(int* num){
+void RankAVLNode<Key, Data>::fillTree(OrderedList<RankAVLNode<Key,Data>>& list, int* num){
     if(this== nullptr|| (*num)<0)return;
-    this->right->fillTree(num);
+    this->right->fillTree(list,num);
     (*num)-=1;
-    this->key=(*num);
-    this->data=(*num);
-    this->left->fillTree(num);
+    this->key=list.end->object.key;
+    this->data=list.end->object.data;
+    list.remove(list.end);
+    this->left->fillTree(list,num);
     this->numOfNodes =1+ this->getNumOfNodes(left)+ this->getNumOfNodes(right);
 }
 
@@ -137,6 +156,11 @@ void RankAVLNode<Key, Data>::deleteForComplete(int* num_toDel) {
     }
     this->left->deleteForComplete(num_toDel);
 }
+
+template<class Key, class Data>
+RankAVLNode<Key, Data>::RankAVLNode(const RankAVLNode<Key,Data>& n):key(n.key),data(n.data)
+,height(0),bf(0),numOfNodes(0),parent(nullptr),left(nullptr),right(nullptr){}
+
 /*------------------------------------------------------------------------------
 -----------------------------RankAVLTree-Implementation-----------------------------
 ------------------------------------------------------------------------------*/
@@ -197,7 +221,6 @@ void RankAVLTree<Key, Data>::getCompleteTree(int nodes_num){
     this->root=completeTree(hightByNodes(nodes_num));
     int n2del= this->nodes2del(nodes_num);
     root->deleteForComplete(&n2del);
-    root->fillTree(&nodes_num);
 }
 
 
@@ -484,16 +507,53 @@ void RankAVLTree<Key, Data>::printTree()
 /*----------------------------------------------------------------------------*/
 
 template<class Key, class Data>
-RankAVLNode<Key, Data>* RankAVLTree<Key, Data>::Select(int rank) { //TODO
+RankAVLNode<Key, Data>* RankAVLTree<Key, Data>::Select(int rank) {
     return SelectSubTree(this->root, rank);
 }
+
+template<class T>
+void outAdd(OrderedList<T>& list, T& obj){
+    auto node=new OrderedListNode<T>(obj, list.end, nullptr);
+    if(list.end!= nullptr)list.end->updateNext(node);
+    list.end=node;
+    if(list.start== nullptr)list.start=node;
+    list.len++;
+}
+
+template<class Key, class Data>
+RankAVLTree<Key, Data>::RankAVLTree(RankAVLNode<Key, Data> *root1, RankAVLNode<Key, Data> *root2):
+root(nullptr){
+    if(root1== nullptr && root2== nullptr)return ;
+    if(root1== nullptr)return ;
+    if(root2== nullptr)return ;
+
+    int sum_nodes=root1->numOfNodes+root2->numOfNodes;
+    this->getCompleteTree(sum_nodes);
+    auto list1=OrderedList<RankAVLNode<Data,Key>>();
+    auto list2=OrderedList<RankAVLNode<Data,Key>>();
+    this->inOrder(root1,list1,outAdd);
+    this->inOrder(root2,list2,outAdd);
+
+    auto list=OrderedList<RankAVLNode<Key,Data>>(list1,list2);
+    root->fillTree(list,&sum_nodes);
+}
+
+template<class Key, class Data>
+void RankAVLTree<Key, Data>::inOrder(RankAVLNode<Key, Data> *root,OrderedList<RankAVLNode<Key,Data>>& list,
+        void (*func)(OrderedList<RankAVLNode<Key,Data>>& ,RankAVLNode<Key, Data>&)){
+    if(root== nullptr)return;
+    this->inOrder(root->left,list,func);
+    func(list,(*root));
+    this->inOrder(root->right,list,func);
+}
+
 
 /*------------------------------------------------------------------------------
 --------------------------------static functions--------------------------------
 ------------------------------------------------------------------------------*/
 
 template<class Key, class Data>
-static RankAVLNode<Key, Data>* SelectSubTree(RankAVLNode<Key,Data> *n, int rank) { //TODO
+static RankAVLNode<Key, Data>* SelectSubTree(RankAVLNode<Key,Data> *n, int rank) {
     if (isLeaf(n)){
         return n;
     }
