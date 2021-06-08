@@ -2,10 +2,13 @@
 #define WET2_UNIONFIND_H
 
 #include "DynamicArray.h"
+#include "RankAVLTree.h"
 
 #define INVALID_VAL -1
 
 enum UFStatus {UF_SUCCESS,UF_ALLOC_FAIL,UF_FAIL};
+
+
 
 /*------------------------------------------------------------------------------
 -------------------------------------Union-Find---------------------------------
@@ -13,34 +16,48 @@ enum UFStatus {UF_SUCCESS,UF_ALLOC_FAIL,UF_FAIL};
 
 /*----------------------------------Singleton---------------------------------*/
 
-template <class Data>
 class UnionFindSingleton {
 public:
     int key;
-    Data group;
+    int groupSize;
+    RankAVLTree<int,int>* group;
     UnionFindSingleton* next = nullptr;
 
+    explicit UnionFindSingleton(int key);
+    ~UnionFindSingleton();
 
-    UnionFindSingleton(int key) = default;
-    ~UnionFindSingleton() = default;
+ //   UnionFindSingleton& operator=(UnionFindSingleton const &toCopy);
 
 };
 
+UnionFindSingleton::UnionFindSingleton(int key):key(key), groupSize(1), group(new RankAVLTree<int,int>) {
+
+}
+
+UnionFindSingleton::~UnionFindSingleton() {
+    delete group;
+}
+
+/*UnionFindSingleton &UnionFindSingleton::operator=(UnionFindSingleton const &toCopy) {
+    key = toCopy.key;
+    groupSize = toCopy.groupSize;
+    group = toCopy.group;
+    next= toCopy.next;
+    return *this;
+}*/
+
 /*----------------------------------Union-Find--------------------------------*/
 
-
-
-template<class Data> //key == int
 class UnionFind {
-    DynamicArray<UnionFindSingleton<Data>>* agenciesObjects;
+    DynamicArray<UnionFindSingleton> agenciesObjects;
 public:
     UnionFind() = default;
     ~UnionFind() = default;
 
-    UFStatus insertSingleton(Data& data);
+    UFStatus insertSingleton();
     UFStatus Union(int key1,int key2);
     int Find(int key);// returns the key of singleton in group containing data
-    Data getData(int key);// data of the singleton, null if it doesn't contain
+    RankAVLTree<int,int> *getTree(int key);// data of the singleton, null if it doesn't contain
 };
 
 
@@ -48,50 +65,64 @@ public:
 -------------------------Union-Find-Implementations-----------------------------
 ------------------------------------------------------------------------------*/
 
+/*-------------------------------Help-Functions-------------------------------*/
+
+inline UnionFindSingleton getRoot(UnionFindSingleton s){
+    while (s.next){
+        s=*s.next;
+    }
+    return s;
+}
+
+inline void compressPath(UnionFindSingleton node,UnionFindSingleton root){
+    if(!node.next) return;//group is Singleton
+    UnionFindSingleton temp = *node.next;
+    do{
+       node.next = &root;
+       node = temp;
+        temp = *temp.next;
+    }while (temp.next);
+}
+
 /*----------------------------------Singleton---------------------------------*/
 
 
 /*-------------------------------Union-Find-----------------------------------*/
 
-template<class Data>
-UFStatus UnionFind<Data>::insertSingleton(Data &data) {
-    if(agenciesObjects->insertNext(UnionFindSingleton<Data>(agenciesObjects->getSize())) == AS_FAIL)
+UFStatus UnionFind::insertSingleton() {
+    auto newSingleton = UnionFindSingleton(agenciesObjects.getSize());
+    if(agenciesObjects.insertNext(newSingleton) == AS_FAIL)
         return UF_ALLOC_FAIL;
     return UF_SUCCESS;
 }
 
-template<class Data>
-UFStatus UnionFind<Data>::Union(int key1, int key2) {
+UFStatus UnionFind::Union(int key1, int key2) {
     if(key1==key2)  return UF_SUCCESS;
     //union by size
-    UnionFindSingleton<Data> singletonSmall = key1 < key2 ? agenciesObjects[key1] : agenciesObjects [key2];
-    UnionFindSingleton<Data> singletonBig = key1 > key2 ? agenciesObjects[key1] : agenciesObjects [key2];
+    UnionFindSingleton singletonSmall = agenciesObjects[key1].groupSize <= agenciesObjects[key2].groupSize ?
+                                        agenciesObjects[key1] : agenciesObjects[key2];
+    UnionFindSingleton singletonBig = agenciesObjects[key1].groupSize > agenciesObjects[key2].groupSize ?
+                                        agenciesObjects[key1] : agenciesObjects[key2];
 
-
-    if (singletonSmall.next) //to get the data of the group
-        singletonSmall = singletonSmall.next;
-    if (singletonBig.next)  //to get the data of the group
-        singletonBig = singletonBig.next;
+    singletonSmall = getRoot(singletonSmall);
+    singletonBig = getRoot(singletonBig);
     //TODO: combine data
 
 
-    singletonSmall.next = singletonBig;
+    singletonSmall.next = &singletonBig;
     return UF_SUCCESS;
 }
 
-template<class Data>
-int UnionFind<Data>::Find(int key) {
-    UnionFindSingleton<Data> singletonTemp = agenciesObjects[key];
-    if(!singletonTemp)   return INVALID_VAL;
-    while(singletonTemp.next){
-        singletonTemp = singletonTemp.next;
-    }
-    return singletonTemp.key;
+int UnionFind::Find(int key) {
+    if(key<0 || key>=agenciesObjects.getSize()) return INVALID_VAL;
+    UnionFindSingleton singletonTemp = agenciesObjects[key];
+    UnionFindSingleton groupRoot = getRoot(singletonTemp);
+    compressPath(singletonTemp,groupRoot);
+    return groupRoot.key;
 }
 
-template<class Data>
-Data UnionFind<Data>::getData(int key) {
-    return agenciesObjects[key]->group;
+RankAVLTree<int,int> *UnionFind::getTree(int key) {
+    return agenciesObjects[key].group;
 }
 
 #endif //WET2_UNIONFIND_H
