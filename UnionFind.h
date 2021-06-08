@@ -21,9 +21,11 @@ public:
     int key;
     int groupSize;
     RankAVLTree<int,int>* group;
+    RankAVLNode<int,int>* min = nullptr;
     UnionFindSingleton* next = nullptr;
 
     explicit UnionFindSingleton(int key);
+    UnionFindSingleton()=default;
     ~UnionFindSingleton();
 
  //   UnionFindSingleton& operator=(UnionFindSingleton const &toCopy);
@@ -38,19 +40,13 @@ UnionFindSingleton::~UnionFindSingleton() {
     delete group;
 }
 
-/*UnionFindSingleton &UnionFindSingleton::operator=(UnionFindSingleton const &toCopy) {
-    key = toCopy.key;
-    groupSize = toCopy.groupSize;
-    group = toCopy.group;
-    next= toCopy.next;
-    return *this;
-}*/
+
 
 /*----------------------------------Union-Find--------------------------------*/
 
 class UnionFind {
-    DynamicArray<UnionFindSingleton> agenciesObjects;
 public:
+    DynamicArray<UnionFindSingleton> agenciesObjects;
     UnionFind() = default;
     ~UnionFind() = default;
 
@@ -58,6 +54,7 @@ public:
     UFStatus Union(int key1,int key2);
     int Find(int key);// returns the key of singleton in group containing data
     RankAVLTree<int,int> *getTree(int key);// data of the singleton, null if it doesn't contain
+    UnionFindSingleton getSingleton(int key);
 };
 
 
@@ -92,7 +89,7 @@ inline void compressPath(UnionFindSingleton node,UnionFindSingleton root){
 UFStatus UnionFind::insertSingleton() {
     auto newSingleton = UnionFindSingleton(agenciesObjects.getSize());
     if(agenciesObjects.insertNext(newSingleton) == AS_FAIL)
-        return UF_ALLOC_FAIL;
+        throw std::bad_alloc();
     return UF_SUCCESS;
 }
 
@@ -106,9 +103,7 @@ UFStatus UnionFind::Union(int key1, int key2) {
 
     singletonSmall = getRoot(singletonSmall);
     singletonBig = getRoot(singletonBig);
-    //TODO: combine data
-
-
+    singletonBig.group=new RankAVLTree<int,int>(singletonBig.group->root,singletonSmall.group->root);
     singletonSmall.next = &singletonBig;
     return UF_SUCCESS;
 }
@@ -123,6 +118,10 @@ int UnionFind::Find(int key) {
 
 RankAVLTree<int,int> *UnionFind::getTree(int key) {
     return agenciesObjects[key].group;
+}
+
+UnionFindSingleton UnionFind::getSingleton(int key) {//assume key is legal
+    return agenciesObjects[key];
 }
 
 #endif //WET2_UNIONFIND_H
