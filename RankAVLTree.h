@@ -6,8 +6,6 @@
 #define DS_WET2_RANKAVLTREE_H
 
 #include <iostream>
-#include <ostream>
-#include <algorithm>
 #include "OrderedList.h"
 
 using std::max;
@@ -64,6 +62,7 @@ class RankAVLTree
 {
 public:
     RankAVLNode<Key,Data> *root = nullptr;
+    RankAVLTree<Key,Data> *minNotZero = nullptr;
     //RankAVLNode<Key,Data> *lastInOrder = nullptr;
 
 
@@ -105,6 +104,16 @@ public:
 
 
 
+/*----------helper functions--------------- */
+
+int hightByNodes(int nodes_num){
+    int log2n=0,tmp=nodes_num;
+    while (tmp!=0){
+        tmp=tmp/2;
+        log2n++;
+    }
+    return log2n;
+}
 
 /*------------------------------------------------------------------------------
 -----------------------------RankAVLNode-Implementation-----------------------------
@@ -175,14 +184,7 @@ RankAVLTree<Key, Data>::~RankAVLTree(){
     this->clearTree();
 }
 /*---------------for complete tree----------------------------*/
-int hightByNodes(int nodes_num){
-    int log2n=0,tmp=nodes_num;
-    while (tmp!=0){
-        tmp=tmp/2;
-        log2n++;
-    }
-    return log2n;
-}
+
 
 
 template<class Key, class Data>

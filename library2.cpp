@@ -1,9 +1,9 @@
 //
 // Created by omerg on 07/06/2021.
 //
+#include "library2.h"
+#include "CarDealershipManager.h"
 
-#include"CarDealershipManager.h"
-/*
 void *Init() {
     auto *DS = new CarDealershipManager();
     return (void*)DS;
@@ -28,4 +28,4 @@ void Quit(void **DS){
     auto CDM= (CarDealershipManager*)DS;
     delete CDM;
 }
- */
+

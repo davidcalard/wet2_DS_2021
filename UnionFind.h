@@ -1,3 +1,6 @@
+
+
+
 #ifndef WET2_UNIONFIND_H
 #define WET2_UNIONFIND_H
 
@@ -16,7 +19,6 @@ enum UFStatus {UF_SUCCESS,UF_ALLOC_FAIL,UF_FAIL};
 ------------------------------------------------------------------------------*/
 
 /*----------------------------------Singleton---------------------------------*/
-
 class UnionFindSingleton {
 public:
     int key;
