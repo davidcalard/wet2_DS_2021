@@ -35,7 +35,11 @@ public:
             if(agencyID>= CDM->agencies.agenciesObjects.getSize())return FAILURE;
             auto agn= CDM->agencies.getTree(CDM->agencies.Find(agencyID));
             auto car=agn->findNode(typeID);
-            if(car== nullptr)return FAILURE;
+            if(car==NULL) {//not sold yet
+            agn->insertNode(typeID,1);
+            return SUCCESS;
+            }else{
+
             agn->removeNode(typeID);
             car->data+=k;
             auto singleton= CDM->agencies.getSingleton(CDM->agencies.Find(agencyID));
