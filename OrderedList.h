@@ -66,7 +66,8 @@ public:
     }
 
     void add(T& obj){
-        auto node=new OrderedListNode<T>(obj,end, nullptr);
+        auto node=new OrderedListNode<T>(obj, end, nullptr);
+        if(end!= nullptr)end->updateNext(node);
         end=node;
         if(start== nullptr)start=node;
         len++;
@@ -92,8 +93,9 @@ public:
         itr1=l1.start;
         itr2=l2.start;
         for (int i = 0; i <l1.len+l2.len ; ++i) {
-            if(((itr2!= nullptr && itr1!= nullptr) && itr1->object < itr2->object)||
-                    (itr2== nullptr&&itr1!= nullptr)){
+            if((itr2== nullptr && itr1== nullptr))return;
+            if(((itr2!= nullptr && itr1!= nullptr) && (itr1->object < itr2->object))||
+                    (itr2 == nullptr && itr1!= nullptr)){
                 this->add(itr1->object);
                 itr1=itr1->next;
             } else {

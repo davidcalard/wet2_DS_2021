@@ -32,24 +32,25 @@ public:
     RankAVLNode *right;
 
     RankAVLNode(Key k, Data d); //constructor
+    RankAVLNode():parent(nullptr),left(nullptr),right(nullptr){}
     RankAVLNode(const RankAVLNode<Key,Data>&); //copy constructor
     ~RankAVLNode(); //destructor
 
     bool isLeaf();
     void fillTree(OrderedList<RankAVLNode<Key,Data>>& list, int* num);
     void deleteForComplete(int* num_toDel);
-    int getNumOfNodes(RankAVLNode<Key,Data>* node){
+    int getNumOfNodes( RankAVLNode<Key,Data>* node) {
         if(node== nullptr)return 0;
         return node->numOfNodes;
     }
     bool operator<(const RankAVLNode<Key,Data>& node){
-        return (this->data < node.data);
+        return (this->key < node.key);
     }
     bool operator>(const RankAVLNode<Key,Data>& node){
-        return (this->data > node.data);
+        return (this->key > node.key);
     }
     bool operator==(const RankAVLNode<Key,Data>& node){
-        return (this->data == node.data);
+        return (this->key == node.key);
     }
 };
 
@@ -63,15 +64,20 @@ class RankAVLTree
 public:
     RankAVLNode<Key,Data> *root = nullptr;
     RankAVLTree<Key,Data> *minNotZero = nullptr;
-    //RankAVLNode<Key,Data> *lastInOrder = nullptr;
-
 
     RankAVLTree(); //constructor
+
     ~RankAVLTree(); //destructor
     //insert Node into the right place in the tree while maintain the balance
     RTreeStatus insertNode(Key k, Data d);
+    //insert node
+    RTreeStatus insertExistNode(RankAVLNode<Key, Data>* node);
+
     //remove Node from the tree while maintain the balance
     RTreeStatus removeNode(Key k);
+    //remove node by reference
+    RTreeStatus removeExactNode(RankAVLNode<Key,Data>* node);
+
     //find Node from the tree by key
     RankAVLNode<Key,Data> *findNode(Key k);
     //updates root tree
@@ -177,6 +183,11 @@ RankAVLNode<Key, Data>::RankAVLNode(const RankAVLNode<Key,Data>& n):key(n.key),d
 template <class Key, class Data>
 RankAVLTree<Key, Data>::RankAVLTree(): root(nullptr) {}
 
+
+/*----------------------------------------------------------------------------*/
+
+
+
 /*----------------------------------------------------------------------------*/
 
 template<class Key, class Data>
@@ -192,7 +203,7 @@ RankAVLNode<Key,Data>* RankAVLTree<Key, Data>::completeTree(int hight){
     if(hight==0)return nullptr;
 
     if(hight<0)return nullptr;
-    auto avLnode= new RankAVLNode<int,int>(hight,hight);
+    auto avLnode= new RankAVLNode<Key,Data>();
 
     RankAVLNode<Key,Data>* tmp_right= completeTree(hight-1);
     avLnode->right=tmp_right;
@@ -273,6 +284,50 @@ RTreeStatus RankAVLTree<Key, Data>::insertNode(Key k, Data d){
     return R_T_FAIL; //should not get here
 }
 
+
+
+
+template<class Key, class Data>
+RTreeStatus RankAVLTree<Key, Data>::insertExistNode(RankAVLNode<Key, Data>* node){
+    if (this->root == nullptr){ //tree is empty
+        this->root = node;
+        return R_T_SUCCESS;
+    }
+
+    RankAVLNode<Key, Data> *sub_root = this->root;
+    while (sub_root != nullptr){
+        if(node->key < sub_root->key || (node->key == sub_root->key &&  node->data < sub_root->data)){
+            if (sub_root->left != nullptr)  sub_root = sub_root->left;
+            else{
+                sub_root->left = node;
+                if(!sub_root->left) return R_T_ALLOC_ERROR;
+                sub_root->left->parent = sub_root; //update parent of new node
+                updateNodeHeight(sub_root->left);
+                updateNodeBF(sub_root);
+                updateNumOfNodes(sub_root); //TODO
+                rebalanceTreeAfterInsert(this, sub_root->left);
+                return R_T_SUCCESS;
+            }
+        }
+
+        else if(node->key > sub_root->key|| (node->key == sub_root->key &&  node->data > sub_root->data)){
+            if (sub_root->right != nullptr)     sub_root = sub_root->right;
+            else{
+                sub_root->right = node;
+                if(!sub_root->right) return R_T_ALLOC_ERROR;
+                sub_root->right->parent = sub_root; //update parent of new node
+                updateNodeHeight(sub_root->right);
+                updateNodeBF(sub_root);
+                updateNumOfNodes(sub_root); //TODO
+                rebalanceTreeAfterInsert(this, sub_root->right);
+                return R_T_SUCCESS;
+            }
+        }
+
+        else return R_T_FAIL; //k is already exist in the tree
+    }
+    return R_T_FAIL; //should not get here
+}
 /*----------------------------------------------------------------------------*/
 
 template<class Key, class Data>
@@ -314,6 +369,48 @@ RTreeStatus RankAVLTree<Key, Data>::removeNode(Key k){
     }
 }
 
+
+
+
+
+template<class Key, class Data>
+RTreeStatus RankAVLTree<Key, Data>::removeExactNode(RankAVLNode<Key,Data>* node){
+    RankAVLNode<Key, Data> *toRemove = node;
+    if (toRemove == nullptr) return R_T_FAIL; //k does not exist in the tree
+    if (isLeaf(toRemove)){
+        leafRemove(this, toRemove);
+        return R_T_SUCCESS;
+    }
+    if (toRemove->left == nullptr && toRemove->right != nullptr){
+        onlyRightSonRemove(this, toRemove);
+        return R_T_SUCCESS;
+    }
+    if (toRemove->left != nullptr && toRemove->right == nullptr){
+        onlyLeftSonRemove(this, toRemove);
+        return R_T_SUCCESS;
+    }
+    else{ //toRemove->left != nullptr && toRemove->right != nullptr
+        RankAVLNode<Key, Data> *nextNode = findNextNode(toRemove);
+        swapNodes(toRemove, nextNode);
+        if(toRemove == this->root){
+            nextNode->parent = nullptr;
+            this->root = nextNode; //update root
+        }
+        //now k is a leaf or has only one son
+        if (isLeaf(toRemove)){
+            leafRemove(this, toRemove);
+            return R_T_SUCCESS;
+        }
+        if (toRemove->left == nullptr && toRemove->right != nullptr){
+            onlyRightSonRemove(this, toRemove);
+            return R_T_SUCCESS;
+        }
+        if (toRemove->left != nullptr && toRemove->right == nullptr){
+            onlyLeftSonRemove(this, toRemove);
+            return R_T_SUCCESS;
+        }return R_DONTKNOW;
+    }
+}
 /*----------------------------------------------------------------------------*/
 
 template<class Key, class Data>
@@ -499,7 +596,7 @@ void RankAVLTree<Key, Data>::printTree()
         printSubTree(this->root->left);
     }
 
-    cout<<" KEY: "<<this->root->key<<"ST: "<<root->numOfNodes<<endl;
+    cout<<" KEY: "<<this->root->key<<" SubT: "<<root->numOfNodes<<endl;
 
     if (this->root->right != nullptr){
         printSubTree(this->root->right);
@@ -531,8 +628,8 @@ root(nullptr){
 
     int sum_nodes=root1->numOfNodes+root2->numOfNodes;
     this->getCompleteTree(sum_nodes);
-    auto list1=OrderedList<RankAVLNode<Data,Key>>();
-    auto list2=OrderedList<RankAVLNode<Data,Key>>();
+    auto list1=OrderedList<RankAVLNode<Key,Data>>();
+    auto list2=OrderedList<RankAVLNode<Key,Data>>();
     this->inOrder(root1,list1,outAdd);
     this->inOrder(root2,list2,outAdd);
 
@@ -550,20 +647,18 @@ void RankAVLTree<Key, Data>::inOrder(RankAVLNode<Key, Data> *root,OrderedList<Ra
 }
 
 
+
 /*------------------------------------------------------------------------------
 --------------------------------static functions--------------------------------
 ------------------------------------------------------------------------------*/
 
 template<class Key, class Data>
 static RankAVLNode<Key, Data>* SelectSubTree(RankAVLNode<Key,Data> *n, int rank) {
-    if (isLeaf(n)){
-        return n;
-    }
+    if(n== nullptr)return nullptr;
 
     if (n->left == nullptr){
-        int new_rank = rank - 1;
-        if(!new_rank) return n;
-        return SelectSubTree(n->right, new_rank);
+        if(rank==0) return n;
+        return SelectSubTree(n->right, rank-1);
     }
 
     else if (n->left != nullptr && n->left->numOfNodes == rank-1){
@@ -988,7 +1083,7 @@ static void printSubTree(RankAVLNode<Key, Data> *root)
 {
     if (root->left != nullptr)  printSubTree(root->left);
 
-    cout<<" KEY: "<<root->key<<"ST: "<<root->numOfNodes<<endl;
+    cout<<" KEY: "<<root->key<<" SubT:: "<<root->numOfNodes<<endl;
 
     if (root->right != nullptr)  printSubTree(root->right);
 }

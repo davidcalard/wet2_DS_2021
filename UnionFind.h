@@ -11,7 +11,7 @@
 #define NO_NEXT -1
 
 enum UFStatus {UF_SUCCESS,UF_ALLOC_FAIL,UF_FAIL};
-
+typedef int carID, Sales;
 
 
 /*------------------------------------------------------------------------------
@@ -24,25 +24,31 @@ public:
     int key;
     int groupSize;
     int nextIndex = NO_NEXT;
-    RankAVLTree<int,int>* group;
-    RankAVLNode<int,int>* min = nullptr;
+    RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* group;
+    RankAVLTree<Sales,carID>* sales;
+    RankAVLNode<Sales,carID>* min = nullptr;
 
     explicit UnionFindSingleton(int key);
+    UnionFindSingleton(const UnionFindSingleton& toCopy);
     UnionFindSingleton()=default;
     ~UnionFindSingleton();
 
- //   UnionFindSingleton& operator=(UnionFindSingleton const &toCopy);
 
 };
 
-UnionFindSingleton::UnionFindSingleton(int key):key(key), groupSize(1), group(new RankAVLTree<int,int>) {
+UnionFindSingleton::UnionFindSingleton(int key):key(key), groupSize(1),
+group(new RankAVLTree<carID ,RankAVLNode<Sales,carID>*>),sales(new RankAVLTree<Sales,carID>) {
 
+}
+
+UnionFindSingleton::UnionFindSingleton(const UnionFindSingleton &toCopy):key(toCopy.key), groupSize(toCopy.groupSize),
+                    nextIndex(toCopy.nextIndex),group(nullptr),sales(nullptr),min(toCopy.min){
 }
 
 UnionFindSingleton::~UnionFindSingleton() {
     delete group;
+    delete sales;
 }
-
 
 
 /*----------------------------------Union-Find--------------------------------*/
@@ -57,8 +63,8 @@ public:
     UFStatus Union(int key1,int key2);
     UFStatus clear();
     int Find(int key);// returns the key of singleton in group containing data
-    RankAVLTree<int,int> *getTree(int key);// data of the singleton, null if it doesn't contain
-    UnionFindSingleton getSingleton(int key);
+    RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* getTree(int key);// data of the singleton, null if it doesn't contain
+    UnionFindSingleton &getSingleton(int key);
 };
 
 
@@ -107,13 +113,21 @@ UFStatus UnionFind::Union(int key1, int key2) {
 
     singletonSmall = goToRoot(*this,singletonSmall);
     singletonBig = goToRoot(*this,singletonBig);
-    RankAVLTree<int,int>* bigTree = singletonBig.group;
-    RankAVLTree<int,int>* smallTree = singletonSmall.group;
-    singletonBig.group = new RankAVLTree<int,int>(bigTree->root,smallTree->root);
+    RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* bigTree = singletonBig.group;
+    RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* smallTree = singletonSmall.group;
+    singletonBig.group = new RankAVLTree<carID ,RankAVLNode<Sales,carID>*>(bigTree->root,smallTree->root);
     if(!singletonBig.group) throw std::bad_alloc();
     delete bigTree;
+    RankAVLTree<Sales,carID>* bigSTree = singletonBig.sales;
+    RankAVLTree<Sales,carID>* smallSTree = singletonSmall.sales;
+    singletonBig.sales = new RankAVLTree<Sales,carID>(bigSTree->root,smallSTree->root);
+    if(!singletonBig.sales) throw std::bad_alloc();
+    delete bigSTree;
     singletonSmall.nextIndex = singletonBig.key;
     singletonBig.groupSize = singletonSmall.groupSize+singletonBig.groupSize;
+    //if(singletonBig.min->key > singletonSmall.min->key) singletonBig.min=singletonSmall.min;
+    //else if (singletonBig.min->key == singletonSmall.min->key &&
+    //singletonBig.min->data > singletonSmall.min->data)singletonBig.min=singletonSmall.min;
 
     return UF_SUCCESS;
 }
@@ -126,11 +140,11 @@ int UnionFind::Find(int key) {
     return groupRoot.key;
 }
 
-RankAVLTree<int,int> *UnionFind::getTree(int key) {
+RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* UnionFind::getTree(int key) {
     return agenciesObjects[key]->group;
 }
 
-UnionFindSingleton UnionFind::getSingleton(int key) {//assume key is legal
+UnionFindSingleton& UnionFind::getSingleton(int key) {//assume key is legal
     return *agenciesObjects[key];
 }
 
