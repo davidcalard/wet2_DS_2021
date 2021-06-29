@@ -122,13 +122,18 @@ UFStatus UnionFind::Union(int key1, int key2) {
     RankAVLTree<Sales,carID>* smallSTree = singletonSmall.sales;
     singletonBig.sales = new RankAVLTree<Sales,carID>(bigSTree->root,smallSTree->root);
     if(!singletonBig.sales) throw std::bad_alloc();
-    delete bigSTree;
+    ///updating the min for the new group
+    if(singletonSmall.min== nullptr);
+    else if(singletonBig.min== nullptr)singletonBig.min = singletonBig.sales->findExactNode(singletonSmall.min->key,singletonSmall.min->data);
+    else if(singletonBig.min->key > singletonSmall.min->key ||
+        (singletonBig.min->key == singletonSmall.min->key && singletonBig.min->data > singletonSmall.min->data)) {
+        singletonBig.min = singletonBig.sales->findExactNode(singletonSmall.min->key,singletonSmall.min->data);
+    }else{
+        singletonBig.min = singletonBig.sales->findExactNode(singletonBig.min->key,singletonBig.min->data);
+    }
+    /*problem with destruction*/delete bigSTree;
     singletonSmall.nextIndex = singletonBig.key;
     singletonBig.groupSize = singletonSmall.groupSize+singletonBig.groupSize;
-    //if(singletonBig.min->key > singletonSmall.min->key) singletonBig.min=singletonSmall.min;
-    //else if (singletonBig.min->key == singletonSmall.min->key &&
-    //singletonBig.min->data > singletonSmall.min->data)singletonBig.min=singletonSmall.min;
-
     return UF_SUCCESS;
 }
 

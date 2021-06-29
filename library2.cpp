@@ -25,7 +25,8 @@ StatusType GetIthSoldType(void *DS, int agencyID, int i, int* res){
 }
 
 void Quit(void **DS){
-    auto CDM= (CarDealershipManager*)DS;
-    delete CDM;
+    auto CDM=(CarDealershipManager**)DS;
+    delete *CDM;
+    *DS=nullptr;
 }
 

@@ -39,14 +39,14 @@ public:
                 agn->insertNode(typeID,s_node);
                 car=agn->findNode(typeID);
             }else{
-                CDM->agencies.agenciesObjects[agencyID]->sales->removeExactNode(car->data);
+                CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).sales->removeExactNode(car->data);
                 car->data->key+=k;
-                CDM->agencies.agenciesObjects[agencyID]->sales->insertExistNode(car->data);
+                CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).sales->insertExistNode(car->data);
             }
                 if(!CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min) {
                     CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min = car->data ;
                 }else{
-                    if(car->data->key < singleton.min->data) singleton.min = car->data;
+                    if(car->data->key < singleton.min->key) CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min = car->data;
                     if(car->data->key == singleton.min->key && typeID < singleton.min->key)
                         CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min = car->data;
                 }
@@ -72,11 +72,10 @@ public:
         }
         StatusType CDMGetIthSoldType(void *DS, int agencyID, int i, int* res){
             try {
-                if(DS== nullptr|| res== nullptr|| agencyID<0) return INVALID_INPUT;
+                if(DS== nullptr|| res== nullptr|| agencyID<0 || i<0) return INVALID_INPUT;
                 auto CDM=(CarDealershipManager*)DS;
                 if(agencyID>= CDM->agencies.agenciesObjects.getSize())return FAILURE;
-                if(CDM->agencies.agenciesObjects[agencyID]->sales->root->
-                        getNumOfNodes(CDM->agencies.agenciesObjects[agencyID]->sales->root)<=i)return FAILURE;
+                if(CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).sales->root->numOfNodes<=i)return FAILURE;
                 if(i==0) {
                     *res = CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min->data;
                     return SUCCESS;

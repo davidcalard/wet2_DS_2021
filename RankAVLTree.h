@@ -44,10 +44,14 @@ public:
         return node->numOfNodes;
     }
     bool operator<(const RankAVLNode<Key,Data>& node){
+        if(this->key < node.key || this->key > node.key)
         return (this->key < node.key);
+        else return (this->data < node.data);
     }
     bool operator>(const RankAVLNode<Key,Data>& node){
-        return (this->key > node.key);
+        if(this->key < node.key || this->key > node.key)
+            return (this->key > node.key);
+        else return (this->data > node.data);
     }
     bool operator==(const RankAVLNode<Key,Data>& node){
         return (this->key == node.key);
@@ -101,6 +105,7 @@ public:
     RankAVLNode<Key,Data>* completeTree(int hight);
     int nodes2del(int nodes_num);
     void getCompleteTree(int nodes_num);
+    RankAVLNode<Key, Data> *findExactNode(Key k,Data d);
 
     //combine 2 rank trees
     RankAVLTree(RankAVLNode<Key,Data>* root1, RankAVLNode<Key,Data>* root2);
@@ -375,14 +380,14 @@ RTreeStatus RankAVLTree<Key, Data>::removeNode(Key k){
 
 template<class Key, class Data>
 RTreeStatus RankAVLTree<Key, Data>::removeExactNode(RankAVLNode<Key,Data>* node){
-    RankAVLNode<Key, Data> *toRemove = node;
+    RankAVLNode<Key, Data> *toRemove = this->findExactNode(node->key,node->data);
     if (toRemove == nullptr) return R_T_FAIL; //k does not exist in the tree
     if (isLeaf(toRemove)){
-        leafRemove(this, toRemove);
+        ExleafRemove(this, toRemove);
         return R_T_SUCCESS;
     }
     if (toRemove->left == nullptr && toRemove->right != nullptr){
-        onlyRightSonRemove(this, toRemove);
+        ExonlyRightSonRemove(this, toRemove);
         return R_T_SUCCESS;
     }
     if (toRemove->left != nullptr && toRemove->right == nullptr){
@@ -423,6 +428,21 @@ RankAVLNode<Key, Data> *RankAVLTree<Key, Data>::findNode(Key k)
         else    return candidate; // k == candidate->key
     }return nullptr; //k is not found in the tree
 }
+
+/*----------------------------------------------------------------------------*/
+
+template<class Key, class Data>
+RankAVLNode<Key, Data> *RankAVLTree<Key, Data>::findExactNode(Key k, Data d){
+    RankAVLNode<Key, Data> *candidate = this->root;
+    while (candidate != nullptr){
+        if (k < candidate->key || (k == candidate->key && d < candidate->data))
+            candidate = candidate->left;
+        else if (k > candidate->key || (k == candidate->key && d > candidate->data))
+            candidate = candidate->right;
+        else    return candidate; // k == candidate->key && d == candidate->data
+    }return nullptr; //k is not found in the tree
+}
+
 /*----------------------------------------------------------------------------*/
 
 template<class Key, class Data>
@@ -623,8 +643,14 @@ template<class Key, class Data>
 RankAVLTree<Key, Data>::RankAVLTree(RankAVLNode<Key, Data> *root1, RankAVLNode<Key, Data> *root2):
 root(nullptr){
     if(root1== nullptr && root2== nullptr)return ;
-    if(root1== nullptr)return ;
-    if(root2== nullptr)return ;
+    if(root1== nullptr){
+        root=root2;
+        return ;
+    }
+    if(root2== nullptr){
+        root==root1;
+        return ;
+    }
 
     int sum_nodes=root1->numOfNodes+root2->numOfNodes;
     this->getCompleteTree(sum_nodes);
@@ -661,15 +687,15 @@ static RankAVLNode<Key, Data>* SelectSubTree(RankAVLNode<Key,Data> *n, int rank)
         return SelectSubTree(n->right, rank-1);
     }
 
-    else if (n->left != nullptr && n->left->numOfNodes == rank-1){
+    else if (n->left != nullptr && n->left->numOfNodes-1 == rank-1){
         return n;
     }
 
-    else if (n->left != nullptr && n->left->numOfNodes > rank-1){
+    else if (n->left != nullptr && n->left->numOfNodes-1 > rank-1){
         return SelectSubTree(n->left, rank);
     }
 
-    else if (n->left != nullptr && n->left->numOfNodes < rank-1){
+    else if (n->left != nullptr && n->left->numOfNodes-1 < rank-1){
         int new_rank = rank - (n->left->numOfNodes) - 1;
         return SelectSubTree(n->right, new_rank);
     }
@@ -874,6 +900,96 @@ static void onlyLeftSonRemove(RankAVLTree<Key, Data> *tree,
         rebalanceTreeAfterRemove(tree, to_rebalance);
     }
 }
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+//remove a leaf node
+template<class Key, class Data>
+static void ExleafRemove(RankAVLTree<Key, Data> *tree, RankAVLNode<Key, Data> *toRemove)
+{
+
+
+
+        if (isLeftSon(toRemove))    toRemove->parent->left = nullptr;
+
+        if (isRightSon(toRemove))   toRemove->parent->right = nullptr;
+
+        RankAVLNode<Key, Data> *to_rebalance = toRemove->parent;
+        updateNumOfNodes(to_rebalance); //TODO
+        while (to_rebalance) {
+            updateNodeHeight(to_rebalance);
+            updateNodeBF(to_rebalance);
+            rebalanceTreeAfterRemove(tree, to_rebalance);
+            to_rebalance = to_rebalance->parent;
+        }
+
+}
+
+/*----------------------------------------------------------------------------*/
+
+//remove node that has only right son
+template<class Key, class Data>
+static void ExonlyRightSonRemove(RankAVLTree<Key, Data> *tree,
+                               RankAVLNode<Key,Data> *toRemove){
+    if (isRoot(toRemove)){
+        tree->updateRoot(toRemove->right);
+        return;
+    }
+
+    else{
+        if (isLeftSon(toRemove)){
+            toRemove->parent->left = toRemove->right;
+            toRemove->right->parent = toRemove->parent;
+        }
+        if (isRightSon(toRemove)){
+            toRemove->parent->right = toRemove->right;
+            toRemove->right->parent = toRemove->parent;
+        }
+        RankAVLNode<Key, Data> *to_rebalance = toRemove->right;
+        updateNumOfNodes(to_rebalance->parent); //TODO
+        updateNodeHeight(to_rebalance);
+        updateNodeBF(to_rebalance);
+        rebalanceTreeAfterRemove(tree, to_rebalance);
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+
+//remove node that have only left son
+template<class Key, class Data>
+static void ExonlyLeftSonRemove(RankAVLTree<Key, Data> *tree,
+                              RankAVLNode<Key, Data> *toRemove)
+{
+    if (isRoot(toRemove)){
+        tree->updateRoot(toRemove->left);
+        return;
+    }
+
+    else{
+        if (isLeftSon(toRemove)){
+            toRemove->parent->left = toRemove->left;
+            toRemove->left->parent = toRemove->parent;
+        }
+        if (isRightSon(toRemove)){
+            toRemove->parent->right = toRemove->left;
+            toRemove->left->parent = toRemove->parent;
+        }
+        RankAVLNode<Key, Data> *to_rebalance = toRemove->left;
+        updateNumOfNodes(to_rebalance->parent); //TODO
+        updateNodeHeight(to_rebalance);
+        updateNodeBF(to_rebalance);
+        rebalanceTreeAfterRemove(tree, to_rebalance);
+    }
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
 
 /*----------------------------------------------------------------------------*/
 
