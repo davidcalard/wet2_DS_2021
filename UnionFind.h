@@ -107,33 +107,34 @@ UFStatus UnionFind::Union(int key1, int key2) {
     if(key1==key2)  return UF_SUCCESS;
     //union by size
     UnionFindSingleton &singletonSmall = agenciesObjects[key1]->groupSize <= agenciesObjects[key2]->groupSize ?
-                                        *agenciesObjects[key1] : *agenciesObjects[key2];
+                                             *agenciesObjects[key1] : *agenciesObjects[key2];
     UnionFindSingleton &singletonBig = agenciesObjects[key1]->groupSize > agenciesObjects[key2]->groupSize ?
-                                        *agenciesObjects[key1] : *agenciesObjects[key2];
+                                           *agenciesObjects[key1] : *agenciesObjects[key2];
 
-    singletonSmall = goToRoot(*this,singletonSmall);
-    singletonBig = goToRoot(*this,singletonBig);
-    RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* bigTree = singletonBig.group;
-    RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* smallTree = singletonSmall.group;
-    singletonBig.group = new RankAVLTree<carID ,RankAVLNode<Sales,carID>*>(bigTree->root,smallTree->root);
-    if(!singletonBig.group) throw std::bad_alloc();
+    UnionFindSingleton &singletonSmallRoot = goToRoot(*this, singletonSmall);
+    UnionFindSingleton &singletonBigRoot = goToRoot(*this, singletonBig);
+    RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* bigTree = singletonBigRoot.group;
+    RankAVLTree<carID ,RankAVLNode<Sales,carID>*>* smallTree = singletonSmallRoot.group;
+    singletonBigRoot.group = new RankAVLTree<carID ,RankAVLNode<Sales,carID>*>(bigTree->root, smallTree->root);
+    if(!singletonBigRoot.group) throw std::bad_alloc();
     delete bigTree;
-    RankAVLTree<Sales,carID>* bigSTree = singletonBig.sales;
-    RankAVLTree<Sales,carID>* smallSTree = singletonSmall.sales;
-    singletonBig.sales = new RankAVLTree<Sales,carID>(bigSTree->root,smallSTree->root);
-    if(!singletonBig.sales) throw std::bad_alloc();
+    RankAVLTree<Sales,carID>* bigSTree = singletonBigRoot.sales;
+    RankAVLTree<Sales,carID>* smallSTree = singletonSmallRoot.sales;
+    singletonBigRoot.sales = new RankAVLTree<Sales,carID>(bigSTree->root, smallSTree->root);
+    if(!singletonBigRoot.sales) throw std::bad_alloc();
     ///updating the min for the new group
-    if(singletonSmall.min== nullptr);
-    else if(singletonBig.min== nullptr)singletonBig.min = singletonBig.sales->findExactNode(singletonSmall.min->key,singletonSmall.min->data);
-    else if(singletonBig.min->key > singletonSmall.min->key ||
-        (singletonBig.min->key == singletonSmall.min->key && singletonBig.min->data > singletonSmall.min->data)) {
-        singletonBig.min = singletonBig.sales->findExactNode(singletonSmall.min->key,singletonSmall.min->data);
+    if(singletonSmallRoot.min == nullptr);
+    else if(singletonBigRoot.min == nullptr)singletonBigRoot.min = singletonBigRoot.sales->findExactNode(singletonSmallRoot.min->key, singletonSmallRoot.min->data);
+    else if(singletonBigRoot.min->key > singletonSmallRoot.min->key ||
+            (singletonBigRoot.min->key == singletonSmallRoot.min->key && singletonBigRoot.min->data > singletonSmallRoot.min->data)) {
+        singletonBigRoot.min = singletonBigRoot.sales->findExactNode(singletonSmallRoot.min->key, singletonSmallRoot.min->data);
     }else{
-        singletonBig.min = singletonBig.sales->findExactNode(singletonBig.min->key,singletonBig.min->data);
+        singletonBigRoot.min = singletonBigRoot.sales->findExactNode(singletonBigRoot.min->key, singletonBigRoot.min->data);
     }
     /*problem with destruction*/delete bigSTree;
-    singletonSmall.nextIndex = singletonBig.key;
-    singletonBig.groupSize = singletonSmall.groupSize+singletonBig.groupSize;
+    singletonSmallRoot.nextIndex = singletonBigRoot.key;
+    singletonSmall.groupSize = singletonSmall.groupSize+singletonBig.groupSize;
+    singletonBigRoot.groupSize = singletonSmallRoot.groupSize + singletonBigRoot.groupSize;
     return UF_SUCCESS;
 }
 

@@ -63,7 +63,6 @@ public:
                 if(agencyID1>= CDM->agencies.agenciesObjects.getSize() ||
                    agencyID2>= CDM->agencies.agenciesObjects.getSize())return FAILURE;
                 CDM->agencies.Union(agencyID2,agencyID1);
-
                 return SUCCESS;
 
             } catch (std::bad_alloc&) {
@@ -75,6 +74,7 @@ public:
                 if(DS== nullptr|| res== nullptr|| agencyID<0 || i<0) return INVALID_INPUT;
                 auto CDM=(CarDealershipManager*)DS;
                 if(agencyID>= CDM->agencies.agenciesObjects.getSize())return FAILURE;
+                if(CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).sales->root == NULL)return FAILURE;
                 if(CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).sales->root->numOfNodes<=i)return FAILURE;
                 if(i==0) {
                     *res = CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min->data;
