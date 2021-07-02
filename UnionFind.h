@@ -121,6 +121,7 @@ UFStatus UnionFind::Union(int key1, int key2) {
     RankAVLTree<Sales,carID>* bigSTree = singletonBigRoot.sales;
     RankAVLTree<Sales,carID>* smallSTree = singletonSmallRoot.sales;
     singletonBigRoot.sales = new RankAVLTree<Sales,carID>(bigSTree->root, smallSTree->root);
+    InOrderGroup(singletonBigRoot.group->root,singletonBigRoot.sales);
     if(!singletonBigRoot.sales) throw std::bad_alloc();
     ///updating the min for the new group
     if(singletonSmallRoot.min == nullptr);
@@ -131,7 +132,7 @@ UFStatus UnionFind::Union(int key1, int key2) {
     }else{
         singletonBigRoot.min = singletonBigRoot.sales->findExactNode(singletonBigRoot.min->key, singletonBigRoot.min->data);
     }
-    /*problem with destruction*/delete bigSTree;
+    delete bigSTree;
     singletonSmallRoot.nextIndex = singletonBigRoot.key;
     singletonSmall.groupSize = singletonSmall.groupSize+singletonBig.groupSize;
     singletonBigRoot.groupSize = singletonSmallRoot.groupSize + singletonBigRoot.groupSize;
