@@ -111,6 +111,15 @@ public:
     RankAVLTree(RankAVLNode<Key,Data>* root1, RankAVLNode<Key,Data>* root2);
     void inOrder(RankAVLNode<Key,Data>* root,OrderedList<RankAVLNode<Key,Data>>& list,
             void (*func)(OrderedList<RankAVLNode<Key,Data>>&,RankAVLNode<Key,Data>& node));
+
+    RankAVLNode<Key,Data>* getMin(){
+        RankAVLNode<Key,Data>* iter=root;
+        if(iter== nullptr)return nullptr;
+        while (iter->left != nullptr){
+            iter=iter->left;
+        }
+        return iter;
+    }
 };
 
 
@@ -150,6 +159,7 @@ bool RankAVLNode<Key, Data>::isLeaf(){
 template<class Key, class Data>
 void RankAVLNode<Key, Data>::fillTree(OrderedList<RankAVLNode<Key,Data>>& list, int* num){
     if(this== nullptr|| (*num)<0)return;
+
     this->right->fillTree(list,num);
     (*num)-=1;
     this->key=list.end->object.key;
@@ -157,6 +167,7 @@ void RankAVLNode<Key, Data>::fillTree(OrderedList<RankAVLNode<Key,Data>>& list, 
     list.remove(list.end);
     this->left->fillTree(list,num);
     this->numOfNodes =1+ this->getNumOfNodes(left)+ this->getNumOfNodes(right);
+
 }
 
 template<class Key, class Data>
@@ -391,7 +402,7 @@ RTreeStatus RankAVLTree<Key, Data>::removeExactNode(RankAVLNode<Key,Data>* node)
         return R_T_SUCCESS;
     }
     if (toRemove->left != nullptr && toRemove->right == nullptr){
-        onlyLeftSonRemove(this, toRemove);
+        ExonlyLeftSonRemove(this, toRemove);
         return R_T_SUCCESS;
     }
     else{ //toRemove->left != nullptr && toRemove->right != nullptr
@@ -403,15 +414,15 @@ RTreeStatus RankAVLTree<Key, Data>::removeExactNode(RankAVLNode<Key,Data>* node)
         }
         //now k is a leaf or has only one son
         if (isLeaf(toRemove)){
-            leafRemove(this, toRemove);
+            ExleafRemove(this, toRemove);
             return R_T_SUCCESS;
         }
         if (toRemove->left == nullptr && toRemove->right != nullptr){
-            onlyRightSonRemove(this, toRemove);
+            ExonlyRightSonRemove(this, toRemove);
             return R_T_SUCCESS;
         }
         if (toRemove->left != nullptr && toRemove->right == nullptr){
-            onlyLeftSonRemove(this, toRemove);
+            ExonlyLeftSonRemove(this, toRemove);
             return R_T_SUCCESS;
         }return R_DONTKNOW;
     }
@@ -648,7 +659,7 @@ root(nullptr){
         return ;
     }
     if(root2== nullptr){
-        root==root1;
+        root=root1;
         return ;
     }
 
@@ -672,6 +683,12 @@ void RankAVLTree<Key, Data>::inOrder(RankAVLNode<Key, Data> *root,OrderedList<Ra
     this->inOrder(root->right,list,func);
 }
 
+void InOrderGroup (RankAVLNode<int ,RankAVLNode<int,int>*>* g,RankAVLTree<int,int>* s){
+    if(g== nullptr)return;
+    InOrderGroup(g->left,s);
+    g->data=s->findExactNode(g->data->key,g->data->data);
+    InOrderGroup(g->right,s);
+}
 
 
 /*------------------------------------------------------------------------------

@@ -41,16 +41,21 @@ public:
             }else{
                 CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).sales->removeExactNode(car->data);
                 car->data->key+=k;
+                if(car->data==CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min){
+                    CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min=car->data->parent;
+                }
                 CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).sales->insertExistNode(car->data);
             }
-                if(!CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min) {
-                    CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min = car->data ;
-                }else{
-                    if(car->data->key < singleton.min->key) CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min = car->data;
-                    if(car->data->key == singleton.min->key && typeID < singleton.min->key)
+
+            auto minim=CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min;
+            if(!minim) {
+                CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min = car->data ;
+            }else{
+                    if(car->data->key < minim->key) CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min = car->data;
+                    if(car->data->key == minim->key && typeID < minim->data)
                         CDM->agencies.getSingleton(CDM->agencies.Find(agencyID)).min = car->data;
-                }
-                return SUCCESS;
+            }
+            return SUCCESS;
 
             } catch (std::bad_alloc&) {
                     return ALLOCATION_ERROR;
